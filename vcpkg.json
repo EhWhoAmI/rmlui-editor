@@ -1,0 +1,18 @@
+{
+    "name": "rmlui-editor",
+    "version-string": "0.0.0",
+    "dependencies": [
+        "glfw3",
+        "rmlui",
+        {
+            "name": "imgui",
+            "default-features": false,
+            "features": [
+              "freetype",
+              "glfw-binding",
+              "opengl3-binding"
+            ]
+          },
+        "glad"
+    ]
+}
