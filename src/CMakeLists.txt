@@ -12,6 +12,6 @@ foreach(_source IN ITEMS ${SOURCE_FILES})
 endforeach()
 
 add_executable(RmlUi-Editor ${SOURCE_FILES})
-target_link_libraries(RmlUi-Editor PRIVATE glfw imgui::imgui RmlCore RmlDebugger glad::glad)
+target_link_libraries(RmlUi-Editor PRIVATE glfw imgui::imgui RmlCore RmlDebugger glad::glad fmt::fmt-header-only)
 
 set_property(TARGET RmlUi-Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")

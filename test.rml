@@ -1,0 +1,23 @@
+<rml>
+    <head>
+        <title>Load Saves</title>
+        <style>
+		body {
+			font-family: LatoLatin;
+			margin: auto;
+			font-size: 24px;
+		}
+            body {
+                width: 80%;
+                height: 80%;
+                background-color: rgba(14, 0, 54, 240);
+            }
+            td {
+                border: 1px #e99;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Load Saves</h1>
+    </body>
+</rml>

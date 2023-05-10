@@ -7,6 +7,9 @@
 #include <imgui_impl_opengl3.h>
 #include "ImFileDialog.h"
 #include "TextEditor.h"
+#include <iostream>
+#include <fstream>
+#include <fmt/format.h>
 
 bool ProcessKeyDownShortcuts(Rml::Context* context, Rml::Input::KeyIdentifier key, int key_modifier, float native_dp_ratio, bool priority)
 {
@@ -104,8 +107,18 @@ int main(int argc, char* argv[]) {
     Rml::Debugger::Initialise(context);
 
     Rml::LoadFontFace("fonts/LatoLatin-Regular.ttf", true);
+    struct Document {
+        TextEditor text_editor;
+        Rml::ElementDocument* doc;
+        bool saved = true;
+        std::string file_name;
+    };
+    std::vector<Document> text_editors;
     TextEditor editor;
+
     bool running = true;
+
+    Rml::ElementDocument* doc = nullptr;
     while (running)
     {
         running = Backend::ProcessEvents(context, &ProcessKeyDownShortcuts, true);
@@ -117,27 +130,75 @@ int main(int argc, char* argv[]) {
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("New File")) {
-                // then do an option window for rcss or
+                // then do an option window for rcss or something like that
             }
-            ImGui::MenuItem("Save File");
+            if (ImGui::MenuItem("Open File")) {
+                // Open the rmlui file
+                ifd::FileDialog::Instance().Open("FileOpenDialog", "Open a file",
+                    "RML/RCSS (*.rcss;*.rml){.rcss,.rml},.*");
+            }
+            if (ImGui::MenuItem("Save File")) {
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
 
-        ImGui::Begin("Test");
-        editor.Render("TextEditor");
-        if(ImGui::Button("Open a texture"))
-            ifd::FileDialog::Instance().Open("TextureOpenDialog", "Open a texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*");
-        ImGui::End();
+        int count = 0;
+        if (!text_editors.empty()) {
+            ImGui::Begin("Main Window");
+            if (ImGui::BeginTabBar("bartab")) {
+                for (auto& doc : text_editors) {
+                    std::string name = fmt::format("{}##{}", doc.file_name, count);
+                    if (!doc.saved) {
+                        name = fmt::format("{} *##{}", doc.file_name, count);
+                    }
+                    count++;
+                    if (!ImGui::BeginTabItem(name.c_str())) {
+                        continue;
+                    }
+                    doc.text_editor.Render(fmt::format("Editor##{}", count).c_str());
+                    if (doc.text_editor.IsTextChanged()) {
+                        doc.saved = false;
+                    }
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+            ImGui::End();
+        }
 
-        if (ifd::FileDialog::Instance().IsDone("TextureOpenDialog")) {
+        /*        ImGui::Begin("Test");
+        if (ImGui::Button("Render")) {
+            // Render the rmlui into a new document
+            std::cout << editor.GetText() << "\n";
+            doc = context->LoadDocumentFromMemory(editor.GetText());
+            doc->Show();
+        }
+        editor.Render("TextEditor");
+        ImGui::End();
+        */
+
+        if (ifd::FileDialog::Instance().IsDone("FileOpenDialog")) {
             if (ifd::FileDialog::Instance().HasResult()) {
                 std::string res = ifd::FileDialog::Instance().GetResult().string();
-                printf("OPEN[%s]\n", res.c_str());
+                Document doc;
+                // Read from file
+                std::ifstream ifs(res);
+                std::stringstream ss;
+                ss << ifs.rdbuf();
+                doc.text_editor.SetText(ss.str());
+                doc.file_name = ifd::FileDialog::Instance().GetResult().filename().string();
+                doc.doc = context->LoadDocumentFromMemory(ss.str());
+                doc.doc->Show();
+                // Open document
+                text_editors.push_back(doc);
             }
             ifd::FileDialog::Instance().Close();
         }
 
+        editor.GetText();
+        // Edit the context and update?
+        // Make the stuff
         context->Update();
 
         Backend::BeginFrame();

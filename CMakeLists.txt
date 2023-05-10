@@ -12,6 +12,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(RmlUi CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 add_subdirectory(src)
 

@@ -34,6 +34,8 @@
 #include <RmlUi/Core/SystemInterface.h>
 #include <GLFW/glfw3.h>
 
+#include <iostream>
+
 SystemInterface_GLFW::SystemInterface_GLFW()
 {
 	cursor_pointer = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
@@ -93,6 +95,12 @@ void SystemInterface_GLFW::GetClipboardText(Rml::String& text)
 {
 	if (window)
 		text = Rml::String(glfwGetClipboardString(window));
+}
+
+bool SystemInterface_GLFW::LogMessage(Rml::Log::Type type, const Rml::String& message)
+{
+    std::cout << message << "\n";
+    return false;
 }
 
 bool RmlGLFW::ProcessKeyCallback(Rml::Context* context, int key, int action, int mods)
