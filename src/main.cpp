@@ -79,9 +79,60 @@ bool ProcessKeyDownShortcuts(Rml::Context* context, Rml::Input::KeyIdentifier ke
     return result;
 }
 
+void MenuBar() {
+    ImGui::BeginMainMenuBar();
+    if (ImGui::BeginMenu("File"))
+    {
+        if (ImGui::MenuItem("New File")) {
+            ifd::FileDialog::Instance().Save("NewFileDialog", "New file",
+                "RML (*.rml){.rml},RCSS (*.rcss){.rcss},.*");
+        }
+        if (ImGui::MenuItem("Open File")) {
+            // Open the rmlui file
+            ifd::FileDialog::Instance().Open("FileOpenDialog", "Open a file",
+                "RML/RCSS (*.rcss;*.rml){.rcss,.rml},.*");
+        }
+        if (ImGui::MenuItem("Save File")) {
+
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Edit")) {
+        if (ImGui::MenuItem("Add Font (Needs restart)")) {
+            // Now show the font thing. You need to restart the app to readd all the fonts
+            ifd::FileDialog::Instance().Open("LoadFont", "Open font",
+                "TTF (*.ttf){.rcss,.ttf}");
+        }
+        ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
+}
+
+
+void ReadFonts() {
+    Rml::LoadFontFace("fonts/LatoLatin-Regular.ttf", true);
+    if (!std::filesystem::exists("fonts.txt")) {
+        // Create the file, but there are no other fonts to load
+        std::ofstream file("fonts.txt");
+        file.close();
+    }
+    else {
+        // Read the file
+        std::ifstream file("fonts.txt");
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.empty()) {
+                continue;
+            }
+            Rml::LoadFontFace(line);
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     int window_width = 1024;
     int window_height = 768;
+
 
     // Constructs the system and render interfaces, creates a window, and attaches the renderer.
     if (!Backend::Initialize("Template Tutorial", window_width, window_height, true))
@@ -106,12 +157,14 @@ int main(int argc, char* argv[]) {
 
     Rml::Debugger::Initialise(context);
 
-    Rml::LoadFontFace("fonts/LatoLatin-Regular.ttf", true);
+    ReadFonts();
+
     struct Document {
         TextEditor text_editor;
-        Rml::ElementDocument* doc;
+        Rml::ElementDocument* doc = nullptr;
         bool saved = true;
         std::string file_name;
+        std::string file_path;
     };
     std::vector<Document> text_editors;
     TextEditor editor;
@@ -126,32 +179,19 @@ int main(int argc, char* argv[]) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::BeginMainMenuBar();
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("New File")) {
-                // then do an option window for rcss or something like that
-            }
-            if (ImGui::MenuItem("Open File")) {
-                // Open the rmlui file
-                ifd::FileDialog::Instance().Open("FileOpenDialog", "Open a file",
-                    "RML/RCSS (*.rcss;*.rml){.rcss,.rml},.*");
-            }
-            if (ImGui::MenuItem("Save File")) {
-            }
-            ImGui::EndMenu();
+        bool to_save = false;
+        // Check if control-s is pressed
+        if (ImGui::IsKeyDown(ImGuiKey_S) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+            to_save = true;
         }
-        ImGui::EndMainMenuBar();
 
+        MenuBar();
         int count = 0;
         if (!text_editors.empty()) {
             ImGui::Begin("Main Window");
             if (ImGui::BeginTabBar("bartab")) {
                 for (auto& doc : text_editors) {
                     std::string name = fmt::format("{}##{}", doc.file_name, count);
-                    if (!doc.saved) {
-                        name = fmt::format("{} *##{}", doc.file_name, count);
-                    }
                     count++;
                     if (!ImGui::BeginTabItem(name.c_str())) {
                         continue;
@@ -159,6 +199,19 @@ int main(int argc, char* argv[]) {
                     doc.text_editor.Render(fmt::format("Editor##{}", count).c_str());
                     if (doc.text_editor.IsTextChanged()) {
                         doc.saved = false;
+                    }
+                    if (to_save) {
+                        // Write to file
+                        std::ofstream file(doc.file_path);
+                        file << doc.text_editor.GetText();
+                        doc.saved = true;
+                        // Reload document
+                        // Check if it's rcss
+                        if (doc.doc != nullptr) {
+                            doc.doc->Close();
+                        }
+                        doc.doc = context->LoadDocumentFromMemory(doc.text_editor.GetText());
+                        doc.doc->Show();
                     }
                     ImGui::EndTabItem();
                 }
@@ -188,10 +241,36 @@ int main(int argc, char* argv[]) {
                 ss << ifs.rdbuf();
                 doc.text_editor.SetText(ss.str());
                 doc.file_name = ifd::FileDialog::Instance().GetResult().filename().string();
+                doc.file_path = res;
                 doc.doc = context->LoadDocumentFromMemory(ss.str());
                 doc.doc->Show();
                 // Open document
                 text_editors.push_back(doc);
+            }
+            ifd::FileDialog::Instance().Close();
+        }
+
+        if (ifd::FileDialog::Instance().IsDone("NewFileDialog")) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                // Make the file
+                std::string res = ifd::FileDialog::Instance().GetResult().string();
+                std::ofstream output(res);
+                Document doc;
+                doc.text_editor.SetText("");
+                doc.file_name = ifd::FileDialog::Instance().GetResult().filename().string();
+                doc.file_path = res;
+                text_editors.push_back(doc);
+            }
+            ifd::FileDialog::Instance().Close();
+        }
+
+        if (ifd::FileDialog::Instance().IsDone("LoadFont")) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                // Append to the font file
+                std::ofstream file;
+                file.open("fonts.txt", std::ios_base::app);
+                std::string res = ifd::FileDialog::Instance().GetResult().string();
+                file << res << "\n";
             }
             ifd::FileDialog::Instance().Close();
         }

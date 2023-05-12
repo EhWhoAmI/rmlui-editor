@@ -1243,6 +1243,7 @@ namespace ifd {
 			ImGui::PopItemWidth();
 
 			if (ImGui::Button("OK")) {
+                // Check if it exists, and then remove it if it does
 				std::ofstream out((m_currentDirectory / std::string(m_newEntryBuffer)).string());
 				out << "";
 				out.close();

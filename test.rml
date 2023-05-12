@@ -3,7 +3,7 @@
         <title>Load Saves</title>
         <style>
 		body {
-			font-family: LatoLatin;
+			font-family: horizon;
 			margin: auto;
 			font-size: 24px;
 		}
@@ -21,3 +21,5 @@
         <h1>Load Saves</h1>
     </body>
 </rml>
+
+
